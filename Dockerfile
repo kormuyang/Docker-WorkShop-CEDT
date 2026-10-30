@@ -13,6 +13,9 @@ WORKDIR /app
 # TODO(step-4b): copy package.json and package-lock.json, then install deps.
 COPY app/package.json app/package-lock.json ./
 RUN npm ci --omit=dev
+# proxy-addr 2.0.7 is vulnerable; install the patched compatible release
+# without changing the workshop's starter manifest or lockfile.
+RUN npm install --no-save --package-lock=false --omit=dev proxy-addr@2.0.8
 
 # TODO(step-4c): copy the rest of the app source into /app.
 COPY app/ .
@@ -23,6 +26,13 @@ COPY app/ .
 
 # TODO(step-4d): set the runtime base image (same tag as step-4a for consistency).
 FROM node:20.11-slim
+
+# Refresh Debian security updates present in the pinned base image, then remove
+# apt metadata. The runtime only needs Node, not the bundled npm CLI.
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx
 
 WORKDIR /app
 
